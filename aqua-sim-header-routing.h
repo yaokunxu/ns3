@@ -641,10 +641,10 @@ namespace ns3
     // Setters
     void SetMessType(uint8_t messType);
     void SetM(uint8_t Mm);
-    void SetRelay(int num, uint8_t relay);
+    void SetRelay(std::vector<uint8_t> relay);
     void SetN(uint8_t Nn);
     void SetP(uint16_t num, double Pp);
-    void SetPkNum(uint32_t pkNum);
+    void SetPkNum(uint16_t pkNum);
     // void SetValue(uint32_t value);
     void SetValue(double value);
     void SetForwardAddr(AquaSimAddress forwardAddr);
@@ -654,10 +654,10 @@ namespace ns3
     // Getters
     uint8_t GetMessType();
     uint8_t GetM();
-    uint8_t *GetRelay();
+    std::vector<uint8_t> GetRelay();
     uint8_t GetN();
-    bool GetP(std::map<uint16_t, double> &temp);
-    uint32_t GetPkNum();
+    double GetP(uint16_t num);
+    uint16_t GetPkNum();
     // uint32_t GetValue();
     double GetValue();
     AquaSimAddress GetForwardAddr();
@@ -673,10 +673,10 @@ namespace ns3
   private:
     uint8_t m_messType; // message type
     uint8_t m;
-    uint8_t Relay[50] = {0};
+    std::vector<uint8_t> Relay;
     uint8_t n;
     std::map<uint16_t, double> P;
-    uint32_t m_pkNum;             // packet sequence num
+    uint16_t m_pkNum;             // packet sequence num
     AquaSimAddress m_forwardAddr; // the forwarder addr
     AquaSimAddress m_previousAddr;
     // uint32_t Value;//V先定义成无符号数，到时候用取负数

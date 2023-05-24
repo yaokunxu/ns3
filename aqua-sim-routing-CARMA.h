@@ -40,12 +40,11 @@ namespace ns3
   struct carma_neighbor
   {
     // unsigned int value;
-    int pj=0;
-    int pji=0;
+    uint16_t pj = 0;  // the max num of recved pktID from this node
+    uint16_t pji = 0; // the num of pkt recved from
     double value;
-    double Pij;
-    double Pji;
-    std::map<int, int> packet;
+    double Pij = 0; // From Pkt
+    double Pji = 0; // By calculate
   };
 
   class AquaSimPktlocalTable
@@ -59,9 +58,9 @@ namespace ns3
     // void PutInHash(AquaSimAddress fAddr, unsigned int pkNum);
     /*void PutInHash(AquaSimAddress fAddr, unsigned int Vvalue, Vector p,unsigned int energy,unsigned int avgenergy,unsigned int density,
     unsigned int sendnum,unsigned int sendsucc);*/
-    void PutInHash(AquaSimAddress fAddr, double Vvalue, int ppj, int ppji, double PPij, double PPji);
+    void PutInHash(AquaSimAddress fAddr, double Vvalue, uint16_t ppj, double PPij);
     // void UpdateHash(AquaSimAddress nexthop,unsigned int Vvalue);
-    void UpdateHash(AquaSimAddress local, AquaSimAddress nexthop, double Vvalue);
+    void UpdateHash(AquaSimAddress local, double Vvalue);
     void UpdateSuccnum(AquaSimAddress previoushop, AquaSimAddress cur);
     carma_neighbor *GetHash(AquaSimAddress forwarderAddr);
   };
@@ -78,24 +77,21 @@ namespace ns3
     virtual bool TxProcess(Ptr<Packet> packet, const Address &dest, uint16_t protocolNumber);
     virtual bool Recv(Ptr<Packet> packet, const Address &dest, uint16_t protocolNumber);
     void SetTargetPos(Vector pos);
+    void broadinit();
+    void Retransmission(Ptr<Packet> pkt);
     // AquaSimVBF_Entry routing_table[MAX_DATA_TYPE];
 
   protected:
     int m_pkCount;
-    int m_counter;
-    int m_hopByHop;
-    int m_enableRouting; // if true, carma can perform routing functionality. Otherwise, not perform
-    int pktID;
     // int m_useOverhear;
-    double m_priority;
-    bool m_measureStatus;
     int m_targetAddress;
+    int m_k = 5;
+    double V = 0;
+    double theta = 0.5;
     // V值计算时公式中的参数
-
+    std::map<int, int> packet;
     // int m_portNumber;
     AquaSimPktlocalTable PktlocalTable;
-
-    double m_width;
     // the width is used to test if the node is close enough to the path specified by the packet
     Vector m_targetPos;
     Ptr<UniformRandomVariable> m_rand;
@@ -118,7 +114,14 @@ namespace ns3
     void StopSource();
     void MACsend(Ptr<Packet> pkt, double delay = 0);
     double getlocalV(AquaSimAddress source);
-
+    int getstatus(int num);
+    bool IsOneofNexthop(int addr, uint8_t num, std::vector<uint8_t> relay);
+    void Processonpkt(Ptr<Packet> pkt);
+    void PktRecv(int num);
+    void Combination(std::vector<uint8_t> &a, std::vector<uint8_t> &b, std::vector<std::vector<uint8_t>> &c, int l, int m, int M);
+    double GetNisa(std::vector<uint8_t> a);
+    double GetLisa(std::vector<uint8_t> a);
+    double GetPisa(std::vector<uint8_t> a);
     // print V log
     void printSourceV(int pktsendnum);
     void printHopbyhopRecvdelay(AquaSimAddress local, AquaSimAddress previous, int pktnum);

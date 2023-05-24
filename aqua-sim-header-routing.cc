@@ -2240,15 +2240,12 @@ QELARHeader::GetExtraInfo()
  * CARMA
  */
 NS_OBJECT_ENSURE_REGISTERED(CARMAHeader);
-
 CARMAHeader::CARMAHeader() : m_messType(0)
 {
 }
-
 CARMAHeader::~CARMAHeader()
 {
 }
-
 TypeId
 CARMAHeader::GetTypeId()
 {
@@ -2257,7 +2254,6 @@ CARMAHeader::GetTypeId()
                           .AddConstructor<CARMAHeader>();
   return tid;
 }
-
 uint32_t
 CARMAHeader::Deserialize(Buffer::Iterator start)
 {
@@ -2266,21 +2262,17 @@ CARMAHeader::Deserialize(Buffer::Iterator start)
   m = i.ReadU8();
   for (int j = 0; j < m; j++)
   {
-    Relay[j] = i.ReadU8();
+    Relay.push_back(i.ReadU8());
   }
   n = i.ReadU8();
   for (int j = 0; j < n; j++)
   {
-    P[j] = ((double)i.ReadU32()) / 1000;
+    std::pair<uint16_t, double> newPair;
+    newPair.first = i.ReadU16();
+    newPair.second = ((double)i.ReadU32()) / 1000;
+    P.insert(newPair);
   }
-  std::map<uint16_t, double>::iterator it;
-  for (it = P.begin(); it != P.end(); it++)
-  {
-    uint16_t num = it->first;
-    num = i.ReadU16();
-    it->second = ((double)i.ReadU32()) / 1000;
-  }
-  m_pkNum = i.ReadU32();
+  m_pkNum = i.ReadU16();
   m_forwardAddr = (AquaSimAddress)i.ReadU16();
   m_previousAddr = (AquaSimAddress)i.ReadU16();
   // Value=i.ReadU32();
@@ -2288,44 +2280,37 @@ CARMAHeader::Deserialize(Buffer::Iterator start)
   // m_originalSource.x = ( (double) i.ReadU32() ) / 1000.0;
   // m_originalSource.y = ( (double) i.ReadU32() ) / 1000.0;
   // m_originalSource.z = ( (double) i.ReadU32() ) / 1000.0;
-
   // This is bloated.
-
   return GetSerializedSize();
 }
-
 uint32_t
 CARMAHeader::GetSerializedSize(void) const
 {
   // reserved bytes for header
   // return (1+4+2+2+2+1+2+12+4+4+4+48);
   // todo
-  return (1 + 1 + m + 1 + 2 * n + 4 * n + 4 + 2 + 2 + 4);
+  return (1 + 1 + m + 1 + 2 * n + 4 * n + 2 + 2 + 2 + 4);
 }
-
 void CARMAHeader::Serialize(Buffer::Iterator start) const
 {
   Buffer::Iterator i = start;
   i.WriteU8(m_messType);
   i.WriteU8(m);
-  for (int j; j < m; j++)
+  for (auto j : Relay)
   {
-    i.WriteU8(Relay[j]);
+    i.WriteU8(j);
   }
   i.WriteU8(n);
   for (std::map<uint16_t, double>::const_iterator it = P.begin(); it != P.end(); it++)
   {
-    std::pair<uint16_t, double> newPair;
-    newPair.first = it->first;
-    newPair.second = it->second;
-    i.WriteU16(newPair.first);
+    i.WriteU16(it->first);
+    i.WriteU32((uint32_t)(it->second * 1000));
   }
-  i.WriteU32(m_pkNum);
+  i.WriteU16(m_pkNum);
   i.WriteU16(m_forwardAddr.GetAsInt());
   i.WriteU16(m_previousAddr.GetAsInt());
   // i.WriteU32(Value);
   i.WriteU32((uint32_t)(Value * 1000));
-
   // Messy...
   // i.WriteU32 ((uint32_t)(m_originalSource.x*1000.0+0.5)); //+0.5 for uint32_t typecast
   // i.WriteU32 ((uint32_t)(m_originalSource.y*1000.0+0.5));
@@ -2333,7 +2318,6 @@ void CARMAHeader::Serialize(Buffer::Iterator start) const
 
   // bloated.
 }
-
 void CARMAHeader::Print(std::ostream &os) const
 {
   os << "Vector Based Routing Header is: messType=";
@@ -2393,18 +2377,16 @@ void CARMAHeader::Print(std::ostream &os) const
                                                                                   m_originalSource.y << "," << m_originalSource.z*/
       ;
 }
-
 TypeId
 CARMAHeader::GetInstanceTypeId(void) const
 {
   return GetTypeId();
 }
-
 void CARMAHeader::SetMessType(uint8_t messType)
 {
   m_messType = messType;
 }
-void CARMAHeader::SetPkNum(uint32_t pkNum)
+void CARMAHeader::SetPkNum(uint16_t pkNum)
 {
   m_pkNum = pkNum;
 }
@@ -2424,9 +2406,9 @@ void CARMAHeader::SetM(uint8_t Mm)
 {
   m = Mm;
 }
-void CARMAHeader::SetRelay(int num, uint8_t relay)
+void CARMAHeader::SetRelay(std::vector<uint8_t> relay)
 {
-  Relay[num] = relay;
+  Relay = relay;
 }
 void CARMAHeader::SetN(uint8_t Nn)
 {
@@ -2449,12 +2431,11 @@ CARMAHeader::GetMessType()
 {
   return m_messType;
 }
-uint32_t
+uint16_t
 CARMAHeader::GetPkNum()
 {
   return m_pkNum;
 }
-
 double
 CARMAHeader::GetValue()
 {
@@ -2475,7 +2456,7 @@ uint8_t CARMAHeader::GetM()
 {
   return m;
 }
-uint8_t *CARMAHeader::GetRelay()
+std::vector<uint8_t> CARMAHeader::GetRelay()
 {
   return Relay;
 }
@@ -2483,16 +2464,15 @@ uint8_t CARMAHeader::GetN()
 {
   return n;
 }
-bool CARMAHeader::GetP(std::map<uint16_t, double> &temp)
+double CARMAHeader::GetP(uint16_t num)
 {
   std::map<uint16_t, double>::iterator it;
   for (it = P.begin(); it != P.end(); it++)
   {
-    std::pair<uint16_t, double> newPair;
-    newPair.first = it->first;
-    newPair.second = it->second;
-    temp.insert(newPair);
+    if (it->first == num)
+    {
+      return it->second;
+    }
   }
-
-  return true;
+  return -1;
 }
