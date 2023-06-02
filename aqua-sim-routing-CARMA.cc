@@ -44,12 +44,12 @@ NS_LOG_COMPONENT_DEFINE("AquaSimCARMA");
 // NS_OBJECT_ENSURE_REGISTERED(AquaSimPktHashTable);
 // todo add timeer
 // clock_t start,finish;
-AquaSimPktlocalTable::AquaSimPktlocalTable()
+AquaSimPktlocalTableCARMA::AquaSimPktlocalTableCARMA()
 {
 	NS_LOG_FUNCTION(this);
 	m_windowSize = WINDOW_SIZE;
 }
-AquaSimPktlocalTable::~AquaSimPktlocalTable()
+AquaSimPktlocalTableCARMA::~AquaSimPktlocalTableCARMA()
 {
 	NS_LOG_FUNCTION(this);
 	for (std::map<AquaSimAddress, carma_neighbor *>::iterator it = m_htable.begin(); it != m_htable.end(); ++it)
@@ -58,12 +58,12 @@ AquaSimPktlocalTable::~AquaSimPktlocalTable()
 	}
 	m_htable.clear();
 }
-void AquaSimPktlocalTable::Reset()
+void AquaSimPktlocalTableCARMA::Reset()
 {
 	m_htable.clear();
 }
 carma_neighbor *
-AquaSimPktlocalTable::GetHash(AquaSimAddress forwarderAddr)
+AquaSimPktlocalTableCARMA::GetHash(AquaSimAddress forwarderAddr)
 {
 	// std::cout<<"++++++GetHash+++++++++++++\n";
 	AquaSimAddress entry = forwarderAddr;
@@ -73,7 +73,7 @@ AquaSimPktlocalTable::GetHash(AquaSimAddress forwarderAddr)
 		return NULL;
 	return it->second;
 }
-void AquaSimPktlocalTable::PutInHash(AquaSimAddress fAddr, double Vvalue, uint16_t ppj, double PPij)
+void AquaSimPktlocalTableCARMA::PutInHash(AquaSimAddress fAddr, double Vvalue, uint16_t ppj, double PPij)
 {
 	NS_LOG_DEBUG("PutinHash begin:" << fAddr << "," << Vvalue << "," << ppj << "," << PPij);
 	// std::cout<<"   Putinhash++++++++++++++    \n ";
@@ -136,7 +136,7 @@ void AquaSimPktlocalTable::PutInHash(AquaSimAddress fAddr, double Vvalue, uint16
 	}*/
 	//}
 }
-void AquaSimPktlocalTable::UpdateHash(AquaSimAddress local, double Vvalue)
+void AquaSimPktlocalTableCARMA::UpdateHash(AquaSimAddress local, double Vvalue)
 { // 更新V值和Sendnum
 	std::map<AquaSimAddress, carma_neighbor *>::iterator it;
 	for (it = m_htable.begin(); it != m_htable.end(); it++)
@@ -150,7 +150,7 @@ void AquaSimPktlocalTable::UpdateHash(AquaSimAddress local, double Vvalue)
 		}
 	}
 }
-void AquaSimPktlocalTable::UpdateSuccnum(AquaSimAddress previous, AquaSimAddress forward)
+void AquaSimPktlocalTableCARMA::UpdateSuccnum(AquaSimAddress previous, AquaSimAddress forward)
 {
 	std::map<AquaSimAddress, carma_neighbor *>::iterator it;
 	for (it = m_htable.begin(); it != m_htable.end(); it++)
@@ -193,12 +193,8 @@ AquaSimCARMA::GetTypeId(void)
 							.SetParent<AquaSimRouting>()
 							.AddConstructor<AquaSimCARMA>()
 							.AddAttribute("TargetID", "ID of target sink.",
-										  IntegerValue(21),
+										  IntegerValue(51),
 										  MakeIntegerAccessor(&AquaSimCARMA::m_targetAddress),
-										  MakeIntegerChecker<int>())
-							.AddAttribute("TargetID", "retranssion permit times .",
-										  IntegerValue(5),
-										  MakeIntegerAccessor(&AquaSimCARMA::m_k),
 										  MakeIntegerChecker<int>());
 	return tid;
 	// bind("m_useOverhear_", &m_useOverhear);
@@ -215,8 +211,11 @@ AquaSimCARMA::AssignStreams(int64_t stream)
 bool AquaSimCARMA::TxProcess(Ptr<Packet> packet, const Address &dest, uint16_t protocolNumber)
 {
 	CARMAHeader vbh;
+	vbh.SetM(0);
+	vbh.SetN(0);
 	// start=clock();
 	packet->AddHeader(vbh);
+	
 	// todo add send DATA_READY packet
 	// MACprepare(packet);
 	// MACsend(packet,0);
@@ -236,6 +235,7 @@ bool AquaSimCARMA::Recv(Ptr<Packet> packet, const Address &dest, uint16_t protoc
 	NS_LOG_FUNCTION(this);
 	std::cout << "================carma Recv=================\n";
 	std::cout << "Current node:" << AquaSimAddress::ConvertFrom(m_device->GetAddress()) << "\n";
+	std::cout << "table size:" << PktlocalTable.m_htable.size() << std::endl;
 	// std::cout<<"Current node:"<<GetNetDevice()->GetAddress()<<"\n";
 	// AquaSimEnergyModel en;
 	// en.GetEnergy();
@@ -246,13 +246,18 @@ bool AquaSimCARMA::Recv(Ptr<Packet> packet, const Address &dest, uint16_t protoc
 	packet->RemoveHeader(vbh);
 	packet->RemoveTrailer(tra);
 
-	if (vbh.GetMessType() != AS_DATA)
+	int type = vbh.GetMessType();
+
+	if (vbh.GetMessType() != AS_DATA && vbh.GetMessType() != DATA_READY)
 	{ // no headers //TODO create specalized Application instead of using this hack.// how many times this pkt was forwarded
 		tra.SetNextHop(AquaSimAddress::GetBroadcast());
 		tra.SetSAddr(AquaSimAddress::ConvertFrom(GetNetDevice()->GetAddress()));
 		tra.SetDAddr(AquaSimAddress::ConvertFrom(dest));
 		tra.SetModeId(1);
 		vbh.SetMessType(AS_DATA);
+		vbh.SetM(0);
+		vbh.SetN(0);
+		vbh.SetPrevioushop(AquaSimAddress::ConvertFrom(GetNetDevice()->GetAddress()));
 		vbh.SetForwardAddr(AquaSimAddress::ConvertFrom(GetNetDevice()->GetAddress()));
 		vbh.SetPkNum(m_pkCount++);
 		// todo
@@ -272,17 +277,19 @@ bool AquaSimCARMA::Recv(Ptr<Packet> packet, const Address &dest, uint16_t protoc
 		packet->PeekHeader(vbh);
 		// ignoring forward iterator, but this can be simply changed if necessary
 	}
-
 	packet->AddTrailer(tra);
 	// unsigned char msg_type =vbh.GetMessType();  //unused
 	// unsigned int dtype = vbh.GetDataType();  //unused
 	// double t1=vbh.GetTs();  //unused
 	// 接到的数据包先将包信息插入(表中有信息则更新能量，位置信息,更新自己的avgenergy,没有就插入所有)
-	carma_neighbor *hash = PktlocalTable.GetHash(vbh.GetForwardAddr());
-	// todo
-	hash->pji++;
+
 	PktlocalTable.PutInHash(vbh.GetForwardAddr(), vbh.GetValue(), vbh.GetPkNum(),
 							vbh.GetP(AquaSimAddress::ConvertFrom(GetNetDevice()->GetAddress()).GetAsInt()));
+	carma_neighbor *hash = PktlocalTable.GetHash(vbh.GetForwardAddr());
+	// todo
+
+	hash->pji++;
+
 	// 以后有机会再考虑移动的
 	// updateDensity_delete_entry(AquaSimAddress::ConvertFrom(GetNetDevice()->GetAddress()));
 	// std::cout<<"insert successfully---------------\n";
@@ -292,13 +299,16 @@ bool AquaSimCARMA::Recv(Ptr<Packet> packet, const Address &dest, uint16_t protoc
 	// std::cout<<"position.x:"<<sModel->GetPosition().x<<"position.y:"<<sModel->GetPosition().y<<"position.z:"<<sModel->GetPosition().z<<std::endl;
 	// todo end
 	// d:关于接收方与转发器的相对位置的信息
+
 	packet->RemoveTrailer(tra);
 	packet->RemoveHeader(vbh);
 
 	packet->AddHeader(vbh);
 	packet->AddTrailer(tra);
-	ConsiderNew(packet);
-
+	if (type != DATA_READY)
+	{
+		ConsiderNew(packet);
+	}
 	return true;
 }
 
@@ -445,16 +455,18 @@ void AquaSimCARMA::MACprepareF(Ptr<Packet> pkt)
 	std::cout << "-----------carma MACprepareF-----------\n";
 	CARMAHeader vbh;
 	AquaSimTrailer tra;
+
 	pkt->RemoveTrailer(tra);
 	pkt->RemoveHeader(vbh);
 	// 记录前一跳节点
+
 	AquaSimAddress previous_hop = vbh.GetForwardAddr();
 	std::map<AquaSimAddress, carma_neighbor *>::iterator it;
 	// 计算V值
 	AquaSimAddress curadd = AquaSimAddress::ConvertFrom(GetNetDevice()->GetAddress());
-	AquaSimAddress nexthop;
 	int status;
 	uint16_t pktnum;
+
 	if (previous_hop == AquaSimAddress::ConvertFrom(GetNetDevice()->GetAddress()))
 	{
 		pktnum = vbh.GetPkNum();
@@ -524,8 +536,11 @@ void AquaSimCARMA::MACprepareF(Ptr<Packet> pkt)
 	V = vis[0];
 
 	std::cout << "Current_Node: " << curadd << ","
-			  << " Nexthop:" << nexthop << ","
 			  << " Vvalue:" << V << "\n";
+	for (auto i : a)
+	{
+		std::cout << "Nexthop" << (int)i << std::endl;
+	}
 	// 下一跳
 	vbh.SetM(a.size());
 	vbh.SetRelay(a);
@@ -558,14 +573,19 @@ void AquaSimCARMA::MACsend(Ptr<Packet> pkt, double delay)
 
 	CARMAHeader vbh;
 	AquaSimTrailer tra;
-	Processonpkt(pkt);
+	AquaSimAddress next_hop = AquaSimAddress::ConvertFrom(GetNetDevice()->GetAddress());
 	pkt->RemoveTrailer(tra);
 	pkt->RemoveHeader(vbh);
-	AquaSimAddress next_hop = AquaSimAddress::ConvertFrom(GetNetDevice()->GetAddress());
+
+	uint8_t type=vbh.GetMessType();
 
 	pkt->AddHeader(vbh);
 	pkt->AddTrailer(tra);
-	printHopbyhopSenddelay(AquaSimAddress::ConvertFrom(GetNetDevice()->GetAddress()), next_hop, pkt->GetUid());
+	if (type== AS_DATA)
+	{
+		Processonpkt(pkt->Copy());
+		printHopbyhopSenddelay(AquaSimAddress::ConvertFrom(GetNetDevice()->GetAddress()), next_hop, pkt->GetUid());
+	}
 	/*Simulator::Schedule(Seconds(delay),&AquaSimRouting::SendDown,this,
 						  pkt,AquaSimAddress::GetBroadcast(),Seconds(0));*/
 	// first seconnds  how long time to send
@@ -750,6 +770,17 @@ void AquaSimCARMA::Retransmission(Ptr<Packet> pkt)
 	// std::cout<<"consider new begin : Advance current position is:"<<pos.x<<","<<pos.y<<","<<pos.z<<'\n';
 	// todo end
 	NS_LOG_INFO("AquaSimCARMA::Retransmission: data packet");
+	CARMAHeader vbh;
+	AquaSimTrailer tra;
+
+	pkt->RemoveTrailer(tra);
+	pkt->RemoveHeader(vbh);
+
+	std::cout<<"n:"<<vbh.GetN();
+
+	pkt->AddHeader(vbh);
+	pkt->AddTrailer(tra);
+
 	// todo 打印每个节点的剩余能量
 	// from_nodeAddr = vbh.GetSenderAddr();
 	// 第一个节点发送
@@ -795,6 +826,11 @@ void AquaSimCARMA::broadinit()
 	// 信息包
 	vbh.SetMessType(DATA_READY);
 	vbh.SetForwardAddr(AquaSimAddress::ConvertFrom(GetNetDevice()->GetAddress()).GetAsInt());
+	vbh.SetPkNum(0);
+	vbh.SetPrevioushop(AquaSimAddress::ConvertFrom(GetNetDevice()->GetAddress()));
+	//vbh.SetM(0);
+	//vbh.SetN(0);
+	vbh.SetValue(0);
 	// printf("vectorbasedforward: last line MACprepare\n");
 
 	pkt->AddHeader(vbh);

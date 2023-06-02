@@ -2264,7 +2264,9 @@ CARMAHeader::Deserialize(Buffer::Iterator start)
   {
     Relay.push_back(i.ReadU8());
   }
+  std::cout << "vector finish" << std::endl;
   n = i.ReadU8();
+  std::cout<<"n:"<<(int)n<<std::endl;
   for (int j = 0; j < n; j++)
   {
     std::pair<uint16_t, double> newPair;
@@ -2272,11 +2274,14 @@ CARMAHeader::Deserialize(Buffer::Iterator start)
     newPair.second = ((double)i.ReadU32()) / 1000;
     P.insert(newPair);
   }
+  std::cout << "map finish" << std::endl;
   m_pkNum = i.ReadU16();
   m_forwardAddr = (AquaSimAddress)i.ReadU16();
   m_previousAddr = (AquaSimAddress)i.ReadU16();
   // Value=i.ReadU32();
   Value = ((double)i.ReadU32()) / 1000;
+  std::cout << "finish" << std::endl;
+
   // m_originalSource.x = ( (double) i.ReadU32() ) / 1000.0;
   // m_originalSource.y = ( (double) i.ReadU32() ) / 1000.0;
   // m_originalSource.z = ( (double) i.ReadU32() ) / 1000.0;

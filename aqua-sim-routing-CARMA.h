@@ -47,12 +47,12 @@ namespace ns3
     double Pji = 0; // By calculate
   };
 
-  class AquaSimPktlocalTable
+  class AquaSimPktlocalTableCARMA
   {
   public:
     std::map<AquaSimAddress, carma_neighbor *> m_htable;
-    AquaSimPktlocalTable();
-    ~AquaSimPktlocalTable();
+    AquaSimPktlocalTableCARMA();
+    ~AquaSimPktlocalTableCARMA();
     int m_windowSize;
     void Reset();
     // void PutInHash(AquaSimAddress fAddr, unsigned int pkNum);
@@ -91,7 +91,7 @@ namespace ns3
     // V值计算时公式中的参数
     std::map<int, int> packet;
     // int m_portNumber;
-    AquaSimPktlocalTable PktlocalTable;
+    AquaSimPktlocalTableCARMA PktlocalTable;
     // the width is used to test if the node is close enough to the path specified by the packet
     Vector m_targetPos;
     Ptr<UniformRandomVariable> m_rand;
