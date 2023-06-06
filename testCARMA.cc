@@ -38,18 +38,18 @@ NS_LOG_COMPONENT_DEFINE("CARMA");
 int main(int argc, char *argv[])
 {
 	double simStop = 17000; // seconds
-	int nodes = 25;			// pos
+	int nodes = 27;			// pos
 	// int nodes=125;//pos1
 	// int nodes=225;//pos2
 	// int nodes=315;//pos3
 	// int nodes=360;//pos4
-	int sinks = 1;	 // sink node num
-	int source = 25; // source node num
-	int allNodes = 50;
+	int sinks = 1;	// sink node num
+	int source = 3; // source node num
+	int allNodes = 30;
 	uint32_t m_dataRate = 80;
 	uint32_t m_packetSize = 32;
 	double range = 1500;
-	double percent = 0.5;
+	double percent = 0.9;
 
 	std::ofstream outfile("info.txt", std::ios::app);
 
@@ -165,6 +165,7 @@ int main(int argc, char *argv[])
 	mobility.Install(sinksCon);
 
 	mobilitymove.SetPositionAllocator(positionnode);
+	// mobilitymove.SetMobilityModel("ns3::ConstantPositionMobilityModel");
 	mobilitymove.SetMobilityModel("ns3::UnderwaterGilderMobilityModel2",
 								  "Speed", StringValue("ns3::UniformRandomVariable[Min=2.0|Max=3.0]"),
 								  "Bounds", StringValue("0|5000|0|5000"));
