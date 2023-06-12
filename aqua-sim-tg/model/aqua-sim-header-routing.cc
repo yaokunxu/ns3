@@ -2259,72 +2259,25 @@ CARMAHeader::Deserialize(Buffer::Iterator start)
 {
   Buffer::Iterator i = start;
   m_messType = i.ReadU8();
-  std::cout << "m_messType:" << (int)m_messType << std::endl;
   m = i.ReadU8();
-  std::cout << "m:" << (int)m << std::endl;
-  if (m == 0)
+  for (int j = 0; j < m; j++)
   {
-    n = i.ReadU8();
-    std::cout << "n:" << (int)n << std::endl;
-    if (n == 0)
-    {
-      m_pkNum = i.ReadU16();
-      std::cout << "m_pkNum:" << (int)m_pkNum << std::endl;
-      m_forwardAddr = (AquaSimAddress)i.ReadU16();
-      std::cout << "forwardaddr:" << m_forwardAddr.GetAsInt() << std::endl;
-      m_previousAddr = (AquaSimAddress)i.ReadU16();
-      std::cout << "previousaddr:" << m_previousAddr.GetAsInt() << std::endl;
-      // Value=i.ReadU32();
-      Value = ((double)i.ReadU32()) / 1000;
-      std::cout << "Value:" << Value << std::endl;
-    }
-    else
-    {
-      for (int j = 0; j < n; j++)
-      {
-        std::pair<uint16_t, double> newPair;
-        newPair.first = i.ReadU16();
-        newPair.second = ((double)i.ReadU32()) / 1000;
-        P.insert(newPair);
-      }
-      m_pkNum = i.ReadU16();
-      m_forwardAddr = (AquaSimAddress)i.ReadU16();
-      m_previousAddr = (AquaSimAddress)i.ReadU16();
-      // Value=i.ReadU32();
-      Value = ((double)i.ReadU32()) / 1000;
-    }
+    Relay.push_back(i.ReadU8());
   }
-  else
+  n = i.ReadU8();
+  for (int j = 0; j < n; j++)
   {
-    for (int j = 0; j < m; j++)
-    {
-      Relay.push_back(i.ReadU8());
-    }
-    n = i.ReadU8();
-    if (n == 0)
-    {
-      m_pkNum = i.ReadU16();
-      m_forwardAddr = (AquaSimAddress)i.ReadU16();
-      m_previousAddr = (AquaSimAddress)i.ReadU16();
-      // Value=i.ReadU32();
-      Value = ((double)i.ReadU32()) / 1000;
-    }
-    else
-    {
-      for (int j = 0; j < n; j++)
-      {
-        std::pair<uint16_t, double> newPair;
-        newPair.first = i.ReadU16();
-        newPair.second = ((double)i.ReadU32()) / 1000;
-        P.insert(newPair);
-      }
-      m_pkNum = i.ReadU16();
-      m_forwardAddr = (AquaSimAddress)i.ReadU16();
-      m_previousAddr = (AquaSimAddress)i.ReadU16();
-      // Value=i.ReadU32();
-      Value = ((double)i.ReadU32()) / 1000;
-    }
+    std::pair<uint16_t, double> newPair;
+    newPair.first = i.ReadU16();
+    newPair.second = ((double)i.ReadU32()) / 1000;
+    P.insert(newPair);
   }
+  m_pkNum = i.ReadU16();
+  m_forNum = i.ReadU16();
+  m_forwardAddr = (AquaSimAddress)i.ReadU16();
+  m_previousAddr = (AquaSimAddress)i.ReadU16();
+  m_senderAddr = (AquaSimAddress)i.ReadU16();
+  Value = ((double)i.ReadU32()) / 1000;
 
   return GetSerializedSize();
 }
@@ -2334,75 +2287,29 @@ CARMAHeader::GetSerializedSize(void) const
   // reserved bytes for header
   // return (1+4+2+2+2+1+2+12+4+4+4+48);
   // todo
-  std::cout << "SerializeSize:" << 1 + 1 + m + 1 + 2 * n + 4 * n + 2 + 2 + 2 + 4 << std::endl;
-  return (1 + 1 + m + 1 + 2 * n + 4 * n + 2 + 2 + 2 + 4);
+  return (1 + 1 + m + 1 + 2 * n + 4 * n + 2 + 2 + 2 + 2 + 2 + 4);
 }
 void CARMAHeader::Serialize(Buffer::Iterator start) const
 {
   Buffer::Iterator i = start;
   i.WriteU8(m_messType);
-  std::cout << "m_messType:" << (int)m_messType << std::endl;
   i.WriteU8(m);
-  std::cout << "m:" << (int)m << std::endl;
-  if (m == 0)
+  for (auto j : Relay)
   {
-    i.WriteU8(n);
-    std::cout << "n:" << (int)n << std::endl;
-    if (n == 0)
-    {
-      i.WriteU16(m_pkNum);
-      std::cout << "m_pkNum:" << m_pkNum << std::endl;
-      i.WriteU16(m_forwardAddr.GetAsInt());
-      std::cout << "m_forwardAddr:" << m_forwardAddr.GetAsInt() << std::endl;
-      i.WriteU16(m_previousAddr.GetAsInt());
-      std::cout << "m_previousAddr:" << m_previousAddr.GetAsInt() << std::endl;
-      // i.WriteU32(Value);
-      i.WriteU32((uint32_t)(Value * 1000));
-      std::cout << "Value:" << Value << std::endl;
-    }
-    else
-    {
-      for (std::map<uint16_t, double>::const_iterator it = P.begin(); it != P.end(); it++)
-      {
-        i.WriteU16(it->first);
-        i.WriteU32((uint32_t)(it->second * 1000));
-      }
-      i.WriteU16(m_pkNum);
-      i.WriteU16(m_forwardAddr.GetAsInt());
-      i.WriteU16(m_previousAddr.GetAsInt());
-      // i.WriteU32(Value);
-      i.WriteU32((uint32_t)(Value * 1000));
-    }
+    i.WriteU8(j);
   }
-  else
+  i.WriteU8(n);
+  for (std::map<uint16_t, double>::const_iterator it = P.begin(); it != P.end(); it++)
   {
-    for (auto j : Relay)
-    {
-      i.WriteU8(j);
-    }
-    i.WriteU8(n);
-    if (n == 0)
-    {
-      i.WriteU16(m_pkNum);
-      i.WriteU16(m_forwardAddr.GetAsInt());
-      i.WriteU16(m_previousAddr.GetAsInt());
-      // i.WriteU32(Value);
-      i.WriteU32((uint32_t)(Value * 1000));
-    }
-    else
-    {
-      for (std::map<uint16_t, double>::const_iterator it = P.begin(); it != P.end(); it++)
-      {
-        i.WriteU16(it->first);
-        i.WriteU32((uint32_t)(it->second * 1000));
-      }
-      i.WriteU16(m_pkNum);
-      i.WriteU16(m_forwardAddr.GetAsInt());
-      i.WriteU16(m_previousAddr.GetAsInt());
-      // i.WriteU32(Value);
-      i.WriteU32((uint32_t)(Value * 1000));
-    }
+    i.WriteU16(it->first);
+    i.WriteU32((uint32_t)(it->second * 1000));
   }
+  i.WriteU16(m_pkNum);
+  i.WriteU16(m_forNum);
+  i.WriteU16(m_forwardAddr.GetAsInt());
+  i.WriteU16(m_previousAddr.GetAsInt());
+  i.WriteU16(m_senderAddr.GetAsInt());
+  i.WriteU32((uint32_t)(Value * 1000));
 }
 void CARMAHeader::Print(std::ostream &os) const
 {
@@ -2459,7 +2366,7 @@ void CARMAHeader::Print(std::ostream &os) const
     break;
   }
 
-  os << " m=" << (int)m << " n=" << (int)n << " pkNum=" << m_pkNum << " forwardAddr=" << m_forwardAddr << " previousAddr=" << m_previousAddr << " Value=" << Value << std::endl;
+  os << " m=" << (int)m << " n=" << (int)n << " pkNum=" << m_pkNum << " forNum" << m_forNum << " forwardAddr=" << m_forwardAddr << " previousAddr=" << m_previousAddr << " senderAddr" << m_senderAddr << " Value=" << Value << std::endl;
   for (auto i : Relay)
   {
     os << "Node:" << (int)i << std::endl;
@@ -2478,9 +2385,35 @@ void CARMAHeader::SetMessType(uint8_t messType)
 {
   m_messType = messType;
 }
+void CARMAHeader::SetM(uint8_t Mm)
+{
+  m = Mm;
+}
+void CARMAHeader::SetRelay(std::vector<uint8_t> relay)
+{
+  for (auto i : relay)
+  {
+    Relay.push_back(i);
+  }
+}
+void CARMAHeader::SetN(uint8_t Nn)
+{
+  n = Nn;
+}
+void CARMAHeader::SetP(uint16_t num, double Pp)
+{
+  std::pair<uint16_t, double> newPair;
+  newPair.first = num;
+  newPair.second = Pp;
+  P.insert(newPair);
+}
 void CARMAHeader::SetPkNum(uint16_t pkNum)
 {
   m_pkNum = pkNum;
+}
+void CARMAHeader::SetForNum(uint16_t forNum)
+{
+  m_forNum = forNum;
 }
 void CARMAHeader::SetValue(double mvalue)
 {
@@ -2494,56 +2427,16 @@ void CARMAHeader::SetPrevioushop(AquaSimAddress previousAddr)
 {
   m_previousAddr = previousAddr;
 }
-void CARMAHeader::SetM(uint8_t Mm)
+void CARMAHeader::SetSenderAddr(AquaSimAddress senderAddr)
 {
-  m = Mm;
+  m_senderAddr = senderAddr;
 }
-void CARMAHeader::SetRelay(std::vector<uint8_t> relay)
-{
-  Relay = relay;
-}
-void CARMAHeader::SetN(uint8_t Nn)
-{
-  n = Nn;
-}
-void CARMAHeader::SetP(uint16_t num, double Pp)
-{
-  std::pair<uint16_t, double> newPair;
-  newPair.first = num;
-  newPair.second = Pp;
-  P.insert(newPair);
-}
-/*void
-CARMAHeader::SetOriginalSource(Vector originalSource)
-{
-  m_originalSource = originalSource;
-}*/
+
 uint8_t
 CARMAHeader::GetMessType()
 {
   return m_messType;
 }
-uint16_t
-CARMAHeader::GetPkNum()
-{
-  return m_pkNum;
-}
-double
-CARMAHeader::GetValue()
-{
-  return Value;
-}
-AquaSimAddress
-CARMAHeader::GetForwardAddr()
-{
-  return m_forwardAddr;
-}
-AquaSimAddress
-CARMAHeader::GetPrevioushop()
-{
-  return m_previousAddr;
-}
-
 uint8_t CARMAHeader::GetM()
 {
   return m;
@@ -2566,10 +2459,40 @@ double CARMAHeader::GetP(uint16_t num)
       return it->second;
     }
   }
-  return -1;
+  return 0;
+}
+uint16_t
+CARMAHeader::GetPkNum()
+{
+  return m_pkNum;
+}
+uint16_t
+CARMAHeader::GetForNum()
+{
+  return m_forNum;
+}
+double
+CARMAHeader::GetValue()
+{
+  return Value;
+}
+AquaSimAddress
+CARMAHeader::GetForwardAddr()
+{
+  return m_forwardAddr;
+}
+AquaSimAddress
+CARMAHeader::GetPrevioushop()
+{
+  return m_previousAddr;
+}
+AquaSimAddress
+CARMAHeader::GetSenderAddr()
+{
+  return m_senderAddr;
 }
 void CARMAHeader::clear()
 {
-  Relay.clear();
+  std::vector<uint8_t>().swap(Relay);
   P.clear();
 }

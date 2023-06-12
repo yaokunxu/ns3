@@ -28,18 +28,14 @@
 #include "ns3/vector.h"
 #include "ns3/random-variable-stream.h"
 #include "ns3/packet.h"
-
 #include <map>
 
 namespace ns3
 {
-
   class CARMAHeader;
-
   // carma neighbor
   struct carma_neighbor
   {
-    // unsigned int value;
     uint16_t pj = 0;  // the max num of recved pktID from this node
     uint16_t pji = 0; // the num of pkt recved from
     double value;
@@ -55,19 +51,12 @@ namespace ns3
     ~AquaSimPktlocalTableCARMA();
     int m_windowSize;
     void Reset();
-    // void PutInHash(AquaSimAddress fAddr, unsigned int pkNum);
-    /*void PutInHash(AquaSimAddress fAddr, unsigned int Vvalue, Vector p,unsigned int energy,unsigned int avgenergy,unsigned int density,
-    unsigned int sendnum,unsigned int sendsucc);*/
     void PutInHash(AquaSimAddress fAddr, double Vvalue, uint16_t ppj, double PPij);
-    // void UpdateHash(AquaSimAddress nexthop,unsigned int Vvalue);
     void UpdateHash(AquaSimAddress local, double Vvalue);
     void UpdateSuccnum(AquaSimAddress previoushop, AquaSimAddress cur);
     carma_neighbor *GetHash(AquaSimAddress forwarderAddr);
   };
-  /**
-   * \brief carma
-   * JinLin University   author:HanCheng
-   */
+
   class AquaSimCARMA : public AquaSimRouting
   {
   public:
@@ -79,51 +68,47 @@ namespace ns3
     void SetTargetPos(Vector pos);
     void broadinit();
     void Retransmission(Ptr<Packet> pkt);
-    // AquaSimVBF_Entry routing_table[MAX_DATA_TYPE];
 
   protected:
+    int m_k;//最大的重传次数
     int m_pkCount;
-    // int m_useOverhear;
+    int m_senderCount;
     int m_targetAddress;
-    int m_k;
     double V;
     double theta;
-    // V值计算时公式中的参数
-    std::map<int, int> packet;
-    // int m_portNumber;
-    AquaSimPktlocalTableCARMA PktlocalTable;
-    // the width is used to test if the node is close enough to the path specified by the packet
     Ptr<UniformRandomVariable> m_rand;
+    AquaSimPktlocalTableCARMA PktlocalTable;
+    std::map<std::pair<AquaSimAddress, uint16_t>, int> packet;
 
-    void Terminate();
     void Reset();
-    void ConsiderNew(Ptr<Packet> pkt);
-    // double SendDefeat();//计算传输失败概率=1-传输成功概率
-    void MACprepareF(Ptr<Packet> pkt); // MACPrepareF函数计算V值
-
-    Ptr<Packet> CreatePacket();
-    // Ptr<Packet> PrepareMessage(unsigned int dtype, AquaSimAddress to_addr, int msg_type);
-    int iscloseenough(Vector p, Vector q);
-    void DataForSink(Ptr<Packet> pkt);
+    void Terminate();
     void StopSource();
-    void MACsend(Ptr<Packet> pkt, double delay = 0);
-    double getlocalV(AquaSimAddress source);
-    int getstatus(int num);
-    bool IsOneofNexthop(int addr, uint8_t num, std::vector<uint8_t> relay);
+    
+    void ConsiderNew(Ptr<Packet> pkt);
+    void MACprepareF(Ptr<Packet> pkt);
+    void DataForSink(Ptr<Packet> pkt);
     void Processonpkt(Ptr<Packet> pkt);
-    void PktRecv(int num);
+    void MACsend(Ptr<Packet> pkt, double delay = 0);
+    void PktRecv(AquaSimAddress addr,uint16_t num);
+    void setPacketRec(AquaSimAddress addr,uint16_t num);
     void Combination(std::vector<uint8_t> &a, std::vector<uint8_t> &b, std::vector<std::vector<uint8_t>> &c, int l, int m, int M);
+    double getlocalV(AquaSimAddress source);
     double GetNisa(std::vector<uint8_t> a);
     double GetLisa(std::vector<uint8_t> a);
     double GetPisa(std::vector<uint8_t> a);
-    // print V log
+    int getstatus(AquaSimAddress addr,uint16_t num);
+    int getstatusreadonly(AquaSimAddress addr,uint16_t num);
+    bool IsOneofNexthop(uint16_t addr, uint8_t num, std::vector<uint8_t> relay);
+    Ptr<Packet> CreatePacket();
+
+    void print();
     void printSourceV(int pktsendnum);
     void printHopbyhopRecvdelay(AquaSimAddress local, AquaSimAddress previous, int pktnum);
     void printHopbyhopSenddelay(AquaSimAddress local, AquaSimAddress nexthop, int pktnum);
     void printEndtoendRecvdelay(AquaSimAddress local, AquaSimAddress previous, int pktnum);
     void printEndtoendSenddelay(AquaSimAddress local, AquaSimAddress nexthop, int pktnum);
     virtual void DoDispose();
-  }; // class AquaSimcarma
+  }; // class AquaSimCARMA
 
 } // namespace ns3
 

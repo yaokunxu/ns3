@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 	// int nodes=360;//pos4
 	int sinks = 1;	// sink node num
 	int source = 3; // source node num
-	int allNodes = 30;
+	int allNodes = 20;
 	uint32_t m_dataRate = 80;
 	uint32_t m_packetSize = 32;
 	double range = 1500;
@@ -118,7 +118,8 @@ int main(int argc, char *argv[])
 	for (NodeContainer::Iterator i = senderCon.Begin(); i != senderCon.End(); i++)
 	{
 		Ptr<AquaSimNetDevice> newDevice = CreateObject<AquaSimNetDevice>();
-		position->Add(Vector(rand() % 5000, rand() % 5000, rand() % 500 + 3000));
+		//position->Add(Vector(rand() % 5000, rand() % 5000, rand() % 500 + 3000));
+		position->Add(Vector(rand() % 1000, rand() % 1000, rand() % 230 +10));
 		devices.Add(asHelper.Create(*i, newDevice));
 		newDevice->GetPhy()->SetTransRange(range);
 	}
@@ -129,7 +130,8 @@ int main(int argc, char *argv[])
 		Ptr<AquaSimNetDevice> newDevice = CreateObject<AquaSimNetDevice>();
 		if (level == 1)
 		{
-			positionnode->Add(Vector(rand() % 5000, rand() % 5000, rand() % 500 + 1000));
+			// positionnode->Add(Vector(rand() % 5000, rand() % 5000, rand() % 500 + 1000));
+			positionnode->Add(Vector(rand() % 1000, rand() % 1000, rand() % 230 + 10));
 			count--;
 			if (count <= 0)
 			{
@@ -138,7 +140,8 @@ int main(int argc, char *argv[])
 		}
 		if (level == 2)
 		{
-			positionnode->Add(Vector(rand() % 5000, rand() % 5000, rand() % 500 + 2000));
+			//positionnode->Add(Vector(rand() % 5000, rand() % 5000, rand() % 500 + 2000));
+			positionnode->Add(Vector(rand() % 1000, rand() % 1000, rand() % 230 + 10));
 		}
 		devices.Add(asHelper.Create(*i, newDevice));
 		newDevice->GetPhy()->SetTransRange(range);
@@ -146,7 +149,8 @@ int main(int argc, char *argv[])
 	for (NodeContainer::Iterator i = sinksCon.Begin(); i != sinksCon.End(); i++)
 	{
 		Ptr<AquaSimNetDevice> newDevice = CreateObject<AquaSimNetDevice>();
-		position->Add(Vector(2500, 2500, 10));
+		//position->Add(Vector(2500, 2500, 10));
+		position->Add(Vector(0, 1000, 10));
 		devices.Add(asHelper.Create(*i, newDevice));
 		newDevice->GetPhy()->SetTransRange(range);
 	}
@@ -165,10 +169,10 @@ int main(int argc, char *argv[])
 	mobility.Install(sinksCon);
 
 	mobilitymove.SetPositionAllocator(positionnode);
-	// mobilitymove.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-	mobilitymove.SetMobilityModel("ns3::UnderwaterGilderMobilityModel2",
+	mobilitymove.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+	/*mobilitymove.SetMobilityModel("ns3::UnderwaterGilderMobilityModel2",
 								  "Speed", StringValue("ns3::UniformRandomVariable[Min=2.0|Max=3.0]"),
-								  "Bounds", StringValue("0|5000|0|5000"));
+								  "Bounds", StringValue("0|5000|0|5000"));*/
 	mobilitymove.Install(nodesCon);
 
 	AquaSimSocketAddress socket;

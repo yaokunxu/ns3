@@ -645,12 +645,12 @@ namespace ns3
     void SetN(uint8_t Nn);
     void SetP(uint16_t num, double Pp);
     void SetPkNum(uint16_t pkNum);
-    // void SetValue(uint32_t value);
+    void SetForNum(uint16_t fornum);
     void SetValue(double value);
     void SetForwardAddr(AquaSimAddress forwardAddr);
     void SetPrevioushop(AquaSimAddress previousAddr);
+    void SetSenderAddr(AquaSimAddress senderAddr);
     void clear();
-    // void SetOriginalSource(Vector originalSource);
 
     // Getters
     uint8_t GetMessType();
@@ -659,10 +659,11 @@ namespace ns3
     uint8_t GetN();
     double GetP(uint16_t num);
     uint16_t GetPkNum();
-    // uint32_t GetValue();
+    uint16_t GetForNum();
     double GetValue();
     AquaSimAddress GetForwardAddr();
     AquaSimAddress GetPrevioushop();
+    AquaSimAddress GetSenderAddr();
 
     // inherited methods
     virtual uint32_t GetSerializedSize(void) const;
@@ -672,21 +673,18 @@ namespace ns3
     virtual TypeId GetInstanceTypeId(void) const;
 
   private:
-    uint8_t m_messType; // message type
+    uint8_t m_messType; 
     uint8_t m;
     std::vector<uint8_t> Relay;
     uint8_t n;
     std::map<uint16_t, double> P;
-    uint16_t m_pkNum;             // packet sequence num
-    AquaSimAddress m_forwardAddr; // the forwarder addr
-    AquaSimAddress m_previousAddr;
-    // uint32_t Value;//V先定义成无符号数，到时候用取负数
-    double Value; // V先定义成double
-
-    // Vector m_originalSource;
-    // int report_rate;               // For simple diffusion only.
-    // int attr[MAX_ATTRIBUTE];
-  }; // class QELARHeader
+    uint16_t m_pkNum; //源节点发的第几个包，不包括重传
+    uint16_t m_forNum;//标识当前节点发了多少包，包括重传
+    AquaSimAddress m_forwardAddr; //当前节点
+    AquaSimAddress m_previousAddr;//前一跳
+    AquaSimAddress m_senderAddr;//标识哪个源节点发包
+    double Value; 
+  }; // class CARMAHeader
 } // namespace ns3
 
 #endif /* AQUA_SIM_HEADER_ROUTING_H */
